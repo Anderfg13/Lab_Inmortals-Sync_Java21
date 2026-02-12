@@ -73,22 +73,29 @@ public final class ControlFrame extends JFrame {
       .formatted(n, health, damage, fight));
   }
 
+  // we had to modify this method for part 3 excersice 2 
   private void onPauseAndCheck(ActionEvent e) {
     if (manager == null) return;
-    manager.pause();
+    manager.pauseAndWait();  // now we wait till every single thread is paused
     List<Immortal> pop = manager.populationSnapshot();
     long sum = 0;
     StringBuilder sb = new StringBuilder();
     for (Immortal im : pop) {
-      int h = im.getHealth();
-      sum += h;
-      sb.append(String.format("%-14s : %5d%n", im.name(), h));
+        int h = im.getHealth();
+        sum += h;
+        sb.append(String.format("%-14s : %5d%n", im.name(), h));
     }
+    
+    // here we show the invariant 
+    long invariantTotal = manager.getPopulationSize() * manager.getInitialHealth();
+    
     sb.append("--------------------------------\n");
-    sb.append("Total Health: ").append(sum).append('\n');
+    sb.append("Total Health Actual: ").append(sum).append('\n');
+    sb.append("Total Health Esperado (Invariante): ").append(invariantTotal).append('\n');
+    sb.append("Diferencia: ").append(sum - invariantTotal).append('\n');
     sb.append("Score (fights): ").append(manager.scoreBoard().totalFights()).append('\n');
     output.setText(sb.toString());
-  }
+}
 
   private void onResume(ActionEvent e) {
     if (manager == null) return;
