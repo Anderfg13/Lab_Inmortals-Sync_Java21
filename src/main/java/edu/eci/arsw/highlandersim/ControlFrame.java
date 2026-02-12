@@ -110,9 +110,11 @@ public final class ControlFrame extends JFrame {
 
   private void safeStop() {
     if (manager != null) {
-      manager.stop();
-      manager = null;
-    }
+        output.append("Stopping simulation...\n");
+        manager.stop();
+        manager = null;
+        output.append("Simulation stopped\n");
+      }
   }
 
   public static void main(String[] args) {
