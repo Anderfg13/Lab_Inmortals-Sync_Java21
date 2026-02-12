@@ -30,27 +30,32 @@ public final class Immortal implements Runnable {
   public void stop() { running = false; }
 
   @Override 
-  public void run() {
-      try {
-          while (running) {
-              controller.awaitIfPaused();
-              if (!running) break;
-              var opponent = pickOpponent();
-              if (opponent == null) continue;
-              String mode = System.getProperty("fight", "ordered");
-              if ("naive".equalsIgnoreCase(mode)) {
-                  fightNaive(opponent);
-              } else if ("trylock".equalsIgnoreCase(mode)) {
-                  fightTryLock(opponent);  // NUEVO
-              } else {
-                  fightOrdered(opponent);  // default ordered
-              }
-              Thread.sleep(2);
-          }
-      } catch (InterruptedException ie) {
-          Thread.currentThread().interrupt();
-      }
-  }
+    public void run() {
+        try {
+            while (running) {
+                controller.awaitIfPaused();
+                if (!running) break;
+                
+                var opponent = pickOpponent();
+                if (opponent == null) continue;
+                
+                String mode = System.getProperty("fight", "ordered");
+                if ("naive".equalsIgnoreCase(mode)) {
+                    fightNaive(opponent);
+                } else if ("trylock".equalsIgnoreCase(mode)) {
+                    fightTryLock(opponent);
+                } else {
+                    fightOrdered(opponent);
+                }
+                
+                Thread.sleep(2);
+            }
+        } catch (InterruptedException ie) {
+            // Salir limpiamente al ser interrumpido
+            System.out.println(name() + " interrupted, stopping");
+            Thread.currentThread().interrupt();
+        }
+    }
 
   private Immortal pickOpponent() {
     if (population.size() <= 1) return null;
