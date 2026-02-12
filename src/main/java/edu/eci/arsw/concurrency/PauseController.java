@@ -50,12 +50,21 @@ public final class PauseController {
   public void awaitAllPaused(int expectedThreads) throws InterruptedException {
     lock.lock();
     try {
-      while (threadsPaused.get() < expectedThreads) {
-        allPaused.await();
-      }
+        long startTime = System.currentTimeMillis();
+        while (threadsPaused.get() < expectedThreads) {
+            allPaused.await(100, java.util.concurrent.TimeUnit.MILLISECONDS);
+            
+            // Timeout después de 5 segundos
+            if (System.currentTimeMillis() - startTime > 5000) {
+                System.out.println("WARNING: Timeout waiting for all threads to pause");
+                System.out.println("Paused: " + threadsPaused.get() + "/" + expectedThreads);
+                break;
+            }
+        }
+        System.out.println("All threads paused: " + threadsPaused.get() + "/" + expectedThreads);
     } finally {
-      lock.unlock();
-    }
+        lock.unlock();
+      }
   }
 
   public void awaitIfPaused() throws InterruptedException {

@@ -94,4 +94,21 @@ public final class ImmortalManager implements AutoCloseable {
   public PauseController controller() { return controller; }
 
   @Override public void close() { stop(); }
+  public boolean verifyInvariant() {
+    long currentSum = 0;
+    for (Immortal im : population) {
+        currentSum += im.getHealth();
+    }
+    long expectedSum = population.size() * initialHealth;
+    boolean holds = (currentSum == expectedSum);
+    
+    System.out.println("=== INVARIANT CHECK ===");
+    System.out.println("Expected: " + expectedSum);
+    System.out.println("Actual: " + currentSum);
+    System.out.println("Difference: " + (currentSum - expectedSum));
+    System.out.println("Holds: " + holds);
+    System.out.println("=======================");
+    
+    return holds;
+  }
 }

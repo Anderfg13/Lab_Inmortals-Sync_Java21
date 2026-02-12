@@ -21,11 +21,13 @@ public final class ControlFrame extends JFrame {
   private final JSpinner healthSpinner = new JSpinner(new SpinnerNumberModel(100, 10, 10000, 10));
   private final JSpinner damageSpinner = new JSpinner(new SpinnerNumberModel(10, 1, 1000, 1));
   private final JComboBox<String> fightMode = new JComboBox<>(new String[]{"ordered", "naive", "trylock"});
+  private final JButton verifyBtn = new JButton("Verify Invariant");
 
   public ControlFrame(int count, String fight) {
     setTitle("Highlander Simulator — ARSW");
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setLayout(new BorderLayout(8,8));
+    
 
     JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
     top.add(new JLabel("Count:"));
@@ -49,12 +51,14 @@ public final class ControlFrame extends JFrame {
     bottom.add(pauseAndCheckBtn);
     bottom.add(resumeBtn);
     bottom.add(stopBtn);
+    bottom.add(verifyBtn);
     add(bottom, BorderLayout.SOUTH);
 
     startBtn.addActionListener(this::onStart);
     pauseAndCheckBtn.addActionListener(this::onPauseAndCheck);
     resumeBtn.addActionListener(this::onResume);
     stopBtn.addActionListener(this::onStop);
+    verifyBtn.addActionListener(this::onVerifyInvariant);
 
     pack();
     setLocationByPlatform(true);
@@ -116,4 +120,11 @@ public final class ControlFrame extends JFrame {
     String fight = System.getProperty("fight", "ordered");
     SwingUtilities.invokeLater(() -> new ControlFrame(count, fight));
   }
+  private void onVerifyInvariant(ActionEvent e) {
+    if (manager == null) return;
+    boolean holds = manager.verifyInvariant();
+    output.append("Invariant holds: " + holds + "\n");
+  }
+
+  
 }

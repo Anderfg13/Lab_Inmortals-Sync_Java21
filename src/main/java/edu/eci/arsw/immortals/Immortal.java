@@ -71,7 +71,8 @@ public final class Immortal implements Runnable {
                 return;
             }
             other.health -= this.damage;
-            this.health += this.damage / 2;
+            this.health += this.damage;     
+
             if (other.health < 0) {
                 other.health = 0;
             }
@@ -99,7 +100,7 @@ public final class Immortal implements Runnable {
             
             //  make the fight
             other.health -= this.damage;
-            this.health += this.damage / 2;
+            this.health += this.damage;
             
             // Never allow negativ health
             if (other.health < 0) {
@@ -126,7 +127,7 @@ private void fightTryLock(Immortal other) {
                 }
                 
                 other.health -= this.damage;
-                this.health += this.damage / 2;
+                this.health += this.damage;
                 
                 if (other.health < 0) {
                     other.health = 0;
