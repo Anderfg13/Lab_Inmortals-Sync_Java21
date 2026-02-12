@@ -54,12 +54,26 @@ public final class Immortal implements Runnable {
 
   private Immortal pickOpponent() {
     if (population.size() <= 1) return null;
+    
     Immortal other;
+    int attempts = 0;
+    int maxAttempts = population.size() * 2; // Evitar bucle infinito
+    
     do {
-      other = population.get(ThreadLocalRandom.current().nextInt(population.size()));
-    } while (other == this);
-    return other;
-  }
+        // Si ya no estoy vivo, no busco oponente
+        if (!isAlive()) return null;
+        
+        other = population.get(ThreadLocalRandom.current().nextInt(population.size()));
+        attempts++;
+        
+        // Si después de muchos intentos no encuentra, rinde
+        if (attempts > maxAttempts) {
+            return null;
+        }
+        } while (other == this || !other.isAlive());
+        
+        return other;
+    }
 
   private void fightNaive(Immortal other) {
     synchronized (this) {
