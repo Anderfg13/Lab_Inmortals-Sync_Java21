@@ -57,25 +57,52 @@ public final class Immortal implements Runnable {
 
   private void fightNaive(Immortal other) {
     synchronized (this) {
-      synchronized (other) {
-        if (this.health <= 0 || other.health <= 0) return;
-        other.health -= this.damage;
-        this.health += this.damage / 2;
-        scoreBoard.recordFight();
-      }
+        synchronized (other) {
+            // Misma lógica corregida
+            if (this.getHealth() <= 0 || other.getHealth() <= 0) {
+                return;
+            }
+            if (this.getHealth() <= 0) {
+                return;
+            }
+            other.health -= this.damage;
+            this.health += this.damage / 2;
+            if (other.health < 0) {
+                other.health = 0;
+            }
+            scoreBoard.recordFight();
+        }
     }
-  }
+}
 
   private void fightOrdered(Immortal other) {
+    // to avoid locl we organice it by name 
     Immortal first = this.name.compareTo(other.name) < 0 ? this : other;
     Immortal second = this.name.compareTo(other.name) < 0 ? other : this;
+    
     synchronized (first) {
-      synchronized (second) {
-        if (this.health <= 0 || other.health <= 0) return;
-        other.health -= this.damage;
-        this.health += this.damage / 2;
-        scoreBoard.recordFight();
-      }
+        synchronized (second) {
+            // we vwrify both  after getting both locks 
+            if (this.getHealth() <= 0 || other.getHealth() <= 0) {
+                return; // sombody is already dead
+            }
+            
+            // make sure atacker  has positiv health
+            if (this.getHealth() <= 0) {
+                return;
+            }
+            
+            //  make the fight
+            other.health -= this.damage;
+            this.health += this.damage / 2;
+            
+            // Never allow negativ health
+            if (other.health < 0) {
+                other.health = 0;
+            }
+            
+            scoreBoard.recordFight();
+        }
     }
-  }
+}
 }
