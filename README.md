@@ -15,6 +15,18 @@ Laboratorio de concurrencia: condiciones de carrera, sincronización, suspensió
 
 ---
 
+## Integrantes
+
+- Juana Lozano Chaves
+- Anderson Fabian Garcia Nieto
+
+---
+## Informe de laboratorio
+ Link: https://docs.google.com/document/d/1jd9hATIf7G4vxHpzHPJZN-db4tooxl5idCAlzSGYI6I/edit?usp=sharing 
+ De todas maneras se subió al repositorio y tiene de nombre Laboratory 3.pdf
+
+---
+
 ## Cómo ejecutar
 
 ### Interfaz gráfica (Swing) — *Highlander Simulator*

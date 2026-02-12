@@ -20,12 +20,14 @@ public final class ControlFrame extends JFrame {
   private final JSpinner countSpinner = new JSpinner(new SpinnerNumberModel(8, 2, 5000, 1));
   private final JSpinner healthSpinner = new JSpinner(new SpinnerNumberModel(100, 10, 10000, 10));
   private final JSpinner damageSpinner = new JSpinner(new SpinnerNumberModel(10, 1, 1000, 1));
-  private final JComboBox<String> fightMode = new JComboBox<>(new String[]{"ordered", "naive"});
+  private final JComboBox<String> fightMode = new JComboBox<>(new String[]{"ordered", "naive", "trylock"});
+  private final JButton verifyBtn = new JButton("Verify Invariant");
 
   public ControlFrame(int count, String fight) {
     setTitle("Highlander Simulator — ARSW");
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setLayout(new BorderLayout(8,8));
+    
 
     JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
     top.add(new JLabel("Count:"));
@@ -49,12 +51,14 @@ public final class ControlFrame extends JFrame {
     bottom.add(pauseAndCheckBtn);
     bottom.add(resumeBtn);
     bottom.add(stopBtn);
+    bottom.add(verifyBtn);
     add(bottom, BorderLayout.SOUTH);
 
     startBtn.addActionListener(this::onStart);
     pauseAndCheckBtn.addActionListener(this::onPauseAndCheck);
     resumeBtn.addActionListener(this::onResume);
     stopBtn.addActionListener(this::onStop);
+    verifyBtn.addActionListener(this::onVerifyInvariant);
 
     pack();
     setLocationByPlatform(true);
@@ -73,22 +77,29 @@ public final class ControlFrame extends JFrame {
       .formatted(n, health, damage, fight));
   }
 
+  // we had to modify this method for part 3 excersice 2 
   private void onPauseAndCheck(ActionEvent e) {
     if (manager == null) return;
-    manager.pause();
+    manager.pauseAndWait();  // now we wait till every single thread is paused
     List<Immortal> pop = manager.populationSnapshot();
     long sum = 0;
     StringBuilder sb = new StringBuilder();
     for (Immortal im : pop) {
-      int h = im.getHealth();
-      sum += h;
-      sb.append(String.format("%-14s : %5d%n", im.name(), h));
+        int h = im.getHealth();
+        sum += h;
+        sb.append(String.format("%-14s : %5d%n", im.name(), h));
     }
+    
+    // here we show the invariant 
+    long invariantTotal = manager.getPopulationSize() * manager.getInitialHealth();
+    
     sb.append("--------------------------------\n");
-    sb.append("Total Health: ").append(sum).append('\n');
+    sb.append("Total Health Actual: ").append(sum).append('\n');
+    sb.append("Total Health Esperado (Invariante): ").append(invariantTotal).append('\n');
+    sb.append("Diferencia: ").append(sum - invariantTotal).append('\n');
     sb.append("Score (fights): ").append(manager.scoreBoard().totalFights()).append('\n');
     output.setText(sb.toString());
-  }
+}
 
   private void onResume(ActionEvent e) {
     if (manager == null) return;
@@ -99,9 +110,11 @@ public final class ControlFrame extends JFrame {
 
   private void safeStop() {
     if (manager != null) {
-      manager.stop();
-      manager = null;
-    }
+        output.append("Stopping simulation...\n");
+        manager.stop();
+        manager = null;
+        output.append("Simulation stopped\n");
+      }
   }
 
   public static void main(String[] args) {
@@ -109,4 +122,11 @@ public final class ControlFrame extends JFrame {
     String fight = System.getProperty("fight", "ordered");
     SwingUtilities.invokeLater(() -> new ControlFrame(count, fight));
   }
+  private void onVerifyInvariant(ActionEvent e) {
+    if (manager == null) return;
+    boolean holds = manager.verifyInvariant();
+    output.append("Invariant holds: " + holds + "\n");
+  }
+
+  
 }

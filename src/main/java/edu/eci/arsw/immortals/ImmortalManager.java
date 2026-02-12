@@ -10,7 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 public final class ImmortalManager implements AutoCloseable {
-  private final List<Immortal> population = new ArrayList<>();
+  private final List<Immortal> population = new java.util.concurrent.CopyOnWriteArrayList<>();
   private final List<Future<?>> futures = new ArrayList<>();
   private final PauseController controller = new PauseController();
   private final ScoreBoard scoreBoard = new ScoreBoard();
@@ -33,6 +33,21 @@ public final class ImmortalManager implements AutoCloseable {
     }
   }
 
+  //part 3 excersice 2 
+  public int getInitialHealth() {
+    return initialHealth;
+  }
+
+  public int getPopulationSize() {
+      return population.size();
+  }
+
+  public int calculateInvariantTotal() {
+      return getPopulationSize() * getInitialHealth();
+  }
+
+
+
   public synchronized void start() {
     if (exec != null) stop();
     exec = Executors.newVirtualThreadPerTaskExecutor();
@@ -42,6 +57,17 @@ public final class ImmortalManager implements AutoCloseable {
   }
 
   public void pause() { controller.pause(); }
+
+  //we add this methos for part 3 
+  public void pauseAndWait() {
+    controller.pause();
+    try {
+        controller.awaitAllPaused(population.size());
+    } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+    }
+}
+
   public void resume() { controller.resume(); }
   public void stop() {
     for (Immortal im : population) im.stop();
@@ -68,4 +94,21 @@ public final class ImmortalManager implements AutoCloseable {
   public PauseController controller() { return controller; }
 
   @Override public void close() { stop(); }
+  public boolean verifyInvariant() {
+    long currentSum = 0;
+    for (Immortal im : population) {
+        currentSum += im.getHealth();
+    }
+    long expectedSum = population.size() * initialHealth;
+    boolean holds = (currentSum == expectedSum);
+    
+    System.out.println("=== INVARIANT CHECK ===");
+    System.out.println("Expected: " + expectedSum);
+    System.out.println("Actual: " + currentSum);
+    System.out.println("Difference: " + (currentSum - expectedSum));
+    System.out.println("Holds: " + holds);
+    System.out.println("=======================");
+    
+    return holds;
+  }
 }

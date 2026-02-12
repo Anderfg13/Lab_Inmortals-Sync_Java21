@@ -29,53 +29,141 @@ public final class Immortal implements Runnable {
   public boolean isAlive() { return getHealth() > 0 && running; }
   public void stop() { running = false; }
 
-  @Override public void run() {
-    try {
-      while (running) {
-        controller.awaitIfPaused();
-        if (!running) break;
-        var opponent = pickOpponent();
-        if (opponent == null) continue;
-        String mode = System.getProperty("fight", "ordered");
-        if ("naive".equalsIgnoreCase(mode)) fightNaive(opponent);
-        else fightOrdered(opponent);
-        Thread.sleep(2);
-      }
-    } catch (InterruptedException ie) {
-      Thread.currentThread().interrupt();
+  @Override 
+    public void run() {
+        try {
+            while (running) {
+                controller.awaitIfPaused();
+                if (!running) break;
+                
+                var opponent = pickOpponent();
+                if (opponent == null) continue;
+                
+                String mode = System.getProperty("fight", "ordered");
+                if ("naive".equalsIgnoreCase(mode)) {
+                    fightNaive(opponent);
+                } else if ("trylock".equalsIgnoreCase(mode)) {
+                    fightTryLock(opponent);
+                } else {
+                    fightOrdered(opponent);
+                }
+                
+                Thread.sleep(2);
+            }
+        } catch (InterruptedException ie) {
+            // Salir limpiamente al ser interrumpido
+            System.out.println(name() + " interrupted, stopping");
+            Thread.currentThread().interrupt();
+        }
     }
-  }
 
   private Immortal pickOpponent() {
     if (population.size() <= 1) return null;
+    
     Immortal other;
+    int attempts = 0;
+    int maxAttempts = population.size() * 2; // Evitar bucle infinito
+    
     do {
-      other = population.get(ThreadLocalRandom.current().nextInt(population.size()));
-    } while (other == this);
-    return other;
-  }
+        // Si ya no estoy vivo, no busco oponente
+        if (!isAlive()) return null;
+        
+        other = population.get(ThreadLocalRandom.current().nextInt(population.size()));
+        attempts++;
+        
+        // Si después de muchos intentos no encuentra, rinde
+        if (attempts > maxAttempts) {
+            return null;
+        }
+        } while (other == this || !other.isAlive());
+        
+        return other;
+    }
 
   private void fightNaive(Immortal other) {
     synchronized (this) {
-      synchronized (other) {
-        if (this.health <= 0 || other.health <= 0) return;
-        other.health -= this.damage;
-        this.health += this.damage / 2;
-        scoreBoard.recordFight();
-      }
+        synchronized (other) {
+            if (this.getHealth() <= 0 || other.getHealth() <= 0) {
+                return;
+            }
+            if (this.getHealth() <= 0) {
+                return;
+            }
+            other.health -= this.damage;
+            this.health += this.damage;     
+
+            if (other.health < 0) {
+                other.health = 0;
+            }
+            scoreBoard.recordFight();
+        }
     }
-  }
+}
 
   private void fightOrdered(Immortal other) {
+    // to avoid locl we organice it by name 
     Immortal first = this.name.compareTo(other.name) < 0 ? this : other;
     Immortal second = this.name.compareTo(other.name) < 0 ? other : this;
+    
     synchronized (first) {
-      synchronized (second) {
-        if (this.health <= 0 || other.health <= 0) return;
-        other.health -= this.damage;
-        this.health += this.damage / 2;
-        scoreBoard.recordFight();
+        synchronized (second) {
+            // we vwrify both  after getting both locks 
+            if (this.getHealth() <= 0 || other.getHealth() <= 0) {
+                return; // sombody is already dead
+            }
+            
+            // make sure atacker  has positiv health
+            if (this.getHealth() <= 0) {
+                return;
+            }
+            
+            //  make the fight
+            other.health -= this.damage;
+            this.health += this.damage;
+            
+            // Never allow negativ health
+            if (other.health < 0) {
+                other.health = 0;
+            }
+            
+            scoreBoard.recordFight();
+          }
       }
-    }
+  }
+
+private void fightTryLock(Immortal other) {
+    // try it for about 10ms
+    long timeout = 10;
+    long startTime = System.currentTimeMillis();
+    
+    while (System.currentTimeMillis() - startTime < timeout) {
+        synchronized (this) {
+            // Try to lock other 
+            if (Thread.holdsLock(other)) {
+              
+                if (this.getHealth() <= 0 || other.getHealth() <= 0) {
+                    return;
+                }
+                
+                other.health -= this.damage;
+                this.health += this.damage;
+                
+                if (other.health < 0) {
+                    other.health = 0;
+                }
+                
+                scoreBoard.recordFight();
+                return;
+            }
+        }
+        
+        // Backoff: wait a little before trying it again
+        try {
+            Thread.sleep(ThreadLocalRandom.current().nextInt(1, 3));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return;
+          }
+      }
   }
 }
