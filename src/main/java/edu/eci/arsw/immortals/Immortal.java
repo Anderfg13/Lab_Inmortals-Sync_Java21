@@ -29,21 +29,27 @@ public final class Immortal implements Runnable {
   public boolean isAlive() { return getHealth() > 0 && running; }
   public void stop() { running = false; }
 
-  @Override public void run() {
-    try {
-      while (running) {
-        controller.awaitIfPaused();
-        if (!running) break;
-        var opponent = pickOpponent();
-        if (opponent == null) continue;
-        String mode = System.getProperty("fight", "ordered");
-        if ("naive".equalsIgnoreCase(mode)) fightNaive(opponent);
-        else fightOrdered(opponent);
-        Thread.sleep(2);
+  @Override 
+  public void run() {
+      try {
+          while (running) {
+              controller.awaitIfPaused();
+              if (!running) break;
+              var opponent = pickOpponent();
+              if (opponent == null) continue;
+              String mode = System.getProperty("fight", "ordered");
+              if ("naive".equalsIgnoreCase(mode)) {
+                  fightNaive(opponent);
+              } else if ("trylock".equalsIgnoreCase(mode)) {
+                  fightTryLock(opponent);  // NUEVO
+              } else {
+                  fightOrdered(opponent);  // default ordered
+              }
+              Thread.sleep(2);
+          }
+      } catch (InterruptedException ie) {
+          Thread.currentThread().interrupt();
       }
-    } catch (InterruptedException ie) {
-      Thread.currentThread().interrupt();
-    }
   }
 
   private Immortal pickOpponent() {
@@ -58,7 +64,6 @@ public final class Immortal implements Runnable {
   private void fightNaive(Immortal other) {
     synchronized (this) {
         synchronized (other) {
-            // Misma lógica corregida
             if (this.getHealth() <= 0 || other.getHealth() <= 0) {
                 return;
             }
@@ -102,7 +107,43 @@ public final class Immortal implements Runnable {
             }
             
             scoreBoard.recordFight();
+          }
+      }
+  }
+
+private void fightTryLock(Immortal other) {
+    // try it for about 10ms
+    long timeout = 10;
+    long startTime = System.currentTimeMillis();
+    
+    while (System.currentTimeMillis() - startTime < timeout) {
+        synchronized (this) {
+            // Try to lock other 
+            if (Thread.holdsLock(other)) {
+              
+                if (this.getHealth() <= 0 || other.getHealth() <= 0) {
+                    return;
+                }
+                
+                other.health -= this.damage;
+                this.health += this.damage / 2;
+                
+                if (other.health < 0) {
+                    other.health = 0;
+                }
+                
+                scoreBoard.recordFight();
+                return;
+            }
         }
-    }
-}
+        
+        // Backoff: wait a little before trying it again
+        try {
+            Thread.sleep(ThreadLocalRandom.current().nextInt(1, 3));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return;
+          }
+      }
+  }
 }
