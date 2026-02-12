@@ -33,6 +33,21 @@ public final class ImmortalManager implements AutoCloseable {
     }
   }
 
+  //part 3 excersice 2 
+  public int getInitialHealth() {
+    return initialHealth;
+  }
+
+  public int getPopulationSize() {
+      return population.size();
+  }
+
+  public int calculateInvariantTotal() {
+      return getPopulationSize() * getInitialHealth();
+  }
+
+
+
   public synchronized void start() {
     if (exec != null) stop();
     exec = Executors.newVirtualThreadPerTaskExecutor();
@@ -42,6 +57,17 @@ public final class ImmortalManager implements AutoCloseable {
   }
 
   public void pause() { controller.pause(); }
+
+  //we add this methos for part 3 
+  public void pauseAndWait() {
+    controller.pause();
+    try {
+        controller.awaitAllPaused(population.size());
+    } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+    }
+}
+
   public void resume() { controller.resume(); }
   public void stop() {
     for (Immortal im : population) im.stop();
